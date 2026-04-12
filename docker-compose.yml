@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: courses_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d courses_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://user:password@postgres:5432/courses_db
+      SECRET_KEY: shared-secret-key-from-auth-service-min-32-chars
+      ALGORITHM: HS256
+      ENVIRONMENT: development
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
