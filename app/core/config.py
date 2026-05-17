@@ -4,9 +4,10 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/courses_db"
-    SECRET_KEY: str = "shared-secret-key-from-auth-service-min-32-chars"
+    SECRET_KEY: str = "mySecretKeyForJWTTokenGenerationAndValidationPurposeOnly12345"
     ALGORITHM: str = "HS256"
     ENVIRONMENT: str = "development"
+    AUTH_SERVICE_URL: str = "https://authservice-ano4.onrender.com"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
