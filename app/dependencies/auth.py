@@ -31,7 +31,13 @@ async def get_current_user(
             },
         )
     user_id = payload.get("sub")
-    role = payload.get("role")
+    # JWT from auth-service stores roles as array (e.g. ["STUDENT"]).
+    # Support both `roles` (array) and `role` (single string).
+    raw_roles = payload.get("roles") or []
+    if isinstance(raw_roles, list) and raw_roles:
+        role = raw_roles[0].lower()
+    else:
+        role = str(payload.get("role") or "").lower()
     if not user_id or not role:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

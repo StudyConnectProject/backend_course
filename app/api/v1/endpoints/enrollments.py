@@ -1,4 +1,5 @@
 from uuid import UUID
+from pydantic import BaseModel
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,10 @@ from app.services.enrollment_service import EnrollmentService
 from app.services.course_service import CourseService
 
 router = APIRouter(prefix="/courses", tags=["enrollments"])
+
+
+class AddStudentBody(BaseModel):
+    student_id: UUID
 
 
 @router.post(
@@ -80,3 +85,44 @@ async def get_course_tutor(
 ):
     service = EnrollmentService(db)
     return await service.get_tutor_info(course_id)
+
+
+@router.post(
+    "/{course_id}/students",
+    response_model=EnrollmentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_student(
+    course_id: UUID,
+    body: AddStudentBody,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role(["tutor", "admin"])),
+):
+    if current_user.role == "tutor":
+        course_service = CourseService(db)
+        course = await course_service.get_course_model(course_id)
+        if course.tutor_id != current_user.id:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=403, detail={"error": "FORBIDDEN", "message": "No puedes modificar este curso", "status_code": 403})
+    service = EnrollmentService(db)
+    return await service.add_student_by_tutor(course_id, body.student_id)
+
+
+@router.delete(
+    "/{course_id}/students/{student_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_student(
+    course_id: UUID,
+    student_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role(["tutor", "admin"])),
+):
+    if current_user.role == "tutor":
+        course_service = CourseService(db)
+        course = await course_service.get_course_model(course_id)
+        if course.tutor_id != current_user.id:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=403, detail={"error": "FORBIDDEN", "message": "No puedes modificar este curso", "status_code": 403})
+    service = EnrollmentService(db)
+    await service.remove_student_by_tutor(course_id, student_id)

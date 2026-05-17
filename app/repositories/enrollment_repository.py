@@ -74,3 +74,12 @@ class EnrollmentRepository:
         enrollments = list(result.scalars().all())
 
         return enrollments, total
+
+    async def list_by_student(self, student_id: uuid.UUID) -> list[Enrollment]:
+        result = await self.db.execute(
+            select(Enrollment).where(
+                Enrollment.student_id == student_id,
+                Enrollment.status == EnrollmentStatus.active,
+            )
+        )
+        return list(result.scalars().all())

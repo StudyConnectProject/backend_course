@@ -15,6 +15,7 @@ from app.schemas.course import (
 )
 from app.schemas.common import PaginatedResponse
 from app.services.course_service import CourseService
+from app.services.enrollment_service import EnrollmentService
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -50,6 +51,19 @@ async def search_courses(
     return await service.search_courses(
         q=q, category=category, tags=tags or None, page=page, page_size=page_size
     )
+
+
+@router.get(
+    "/my-enrollments",
+    response_model=list[UUID],
+    tags=["enrollments"],
+)
+async def my_enrollments(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role(["student"])),
+):
+    service = EnrollmentService(db)
+    return await service.list_my_enrollments(current_user.id)
 
 
 @router.get(

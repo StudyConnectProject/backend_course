@@ -109,3 +109,37 @@ class EnrollmentService:
                 },
             )
         return TutorInfo(tutor_id=course.tutor_id)
+
+    async def list_my_enrollments(self, student_id: uuid.UUID) -> list[uuid.UUID]:
+        enrollments = await self.repo.list_by_student(student_id)
+        return [e.course_id for e in enrollments]
+
+    async def add_student_by_tutor(
+        self, course_id: uuid.UUID, student_id: uuid.UUID
+    ) -> EnrollmentResponse:
+        course = await self.course_repo.get_by_id(course_id)
+        if not course:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"error": "COURSE_NOT_FOUND", "message": f"Curso {course_id} no encontrado", "status_code": 404},
+            )
+        existing = await self.repo.get_active_by_course_and_student(course_id, student_id)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"error": "ALREADY_ENROLLED", "message": "El estudiante ya está inscrito", "status_code": 409},
+            )
+        enrollment = Enrollment(course_id=course_id, student_id=student_id)
+        enrollment = await self.repo.create(enrollment)
+        return EnrollmentResponse.model_validate(enrollment)
+
+    async def remove_student_by_tutor(
+        self, course_id: uuid.UUID, student_id: uuid.UUID
+    ) -> None:
+        enrollment = await self.repo.get_active_by_course_and_student(course_id, student_id)
+        if not enrollment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"error": "ENROLLMENT_NOT_FOUND", "message": "No se encontró una inscripción activa", "status_code": 404},
+            )
+        await self.repo.cancel(enrollment)
