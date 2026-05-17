@@ -40,16 +40,22 @@ class EnrollmentService:
                 },
             )
 
-        existing = await self.repo.get_active_by_course_and_student(course_id, student_id)
+        existing = await self.repo.get_by_course_and_student(course_id, student_id)
         if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "error": "ALREADY_ENROLLED",
-                    "message": "Ya estás inscrito en este curso",
-                    "status_code": 409,
-                },
-            )
+            if existing.status == EnrollmentStatus.active:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "error": "ALREADY_ENROLLED",
+                        "message": "Ya estás inscrito en este curso",
+                        "status_code": 409,
+                    },
+                )
+            # Reactivate cancelled enrollment instead of inserting a new row
+            existing.status = EnrollmentStatus.active
+            await self.repo.db.flush()
+            await self.repo.db.refresh(existing)
+            return EnrollmentResponse.model_validate(existing)
 
         enrollment = Enrollment(
             course_id=course_id,
