@@ -13,6 +13,7 @@ app = FastAPI(
     title="StudyConnect — Course Service",
     description="Microservicio de gestión de cursos académicos",
     version="1.0.0",
+    redirect_slashes=False,
 )
 
 app.include_router(v1_router)
