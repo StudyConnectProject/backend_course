@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "mySecretKeyForJWTTokenGenerationAndValidationPurposeOnly12345"
     ALGORITHM: str = "HS256"
     ENVIRONMENT: str = "development"
-    AUTH_SERVICE_URL: str = "https://authservice-ano4.onrender.com"
+    AUTH_SERVICE_URL: str = "https://authservice-lzwi.onrender.com"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
